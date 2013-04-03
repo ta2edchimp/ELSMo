@@ -14,8 +14,9 @@ Copyright (c) 2013 by Andreas Windt aka ta2edchimp.
 
 ## Installation
 
+Ensure to have [Pheal by Peter Petermann](http://github.com/ppetermann/pheal) installed.
 Download as ZIP and rename as "ELSMo_0_0_1.zip" (for Version 0.0.1), upload it using the SMF Package Manager and eventually "install modification".
-Ensure to have [Pheal by Peter Petermann](http://github.com/ppetermann/pheal) installed and everything should work properly.
+EVE IGB links are activated automatically when the user added your forum to the trusted sites.
 
 
 ## Known Issues
