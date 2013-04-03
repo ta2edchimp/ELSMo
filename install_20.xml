@@ -1,0 +1,293 @@
+<?xml version="1.0"?>
+<!DOCTYPE modification SYSTEM "http://www.simplemachines.org/xml/modification">
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    ATTENTION: If you are trying to install this manually, you should try
+    the package manager.  If it will not work for you, please take a look
+    at the following for information on this format:
+        http://mods.simplemachines.org/docs/manual-install.php
+
+================================================================
+    Name: ELSMo
+    Author: ta2edchimp
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    Description:
+    Links EVE-Online Items to in game Info-Panels (IGB) or according websites (OOGB)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+<modification xmlns="http://www.simplemachines.org/xml/modification" xmlns:smf="http://www.simplemachines.org/">
+    <id>ta2edchimp:ELSMo</id>
+    <version>0.0.4</version>
+
+    <file name="$sourcedir/Subs.php">
+        <operation>
+            <search whitespace="loose" position="before"><![CDATA[array(
+  			'tag' => 'white',
+				'before' => '<span style="color: white;" class="bbc_color">',
+				'after' => '</span>',
+			),]]></search>
+            <add><![CDATA[array(
+				'tag' => 'evechar',
+				'type' => 'unparsed_content',
+				'content' => '$1',
+				'validate' => create_function('&$tag, &$data, $disabled', '
+					global $smcFunc;
+					global $db_prefix;
+					
+					$processed_data = str_replace("&#039;", "\'", $data);
+					$output = \'<a href="http://evewho.com/pilot/\' . urlencode($processed_data) . \'">\' . $data . \'</a><sup>&#x2261; who</sup>\';
+					$evelink = \'\';
+					
+					// Only if site is trusted ...
+					
+					if ($_SERVER[\'HTTP_EVE_TRUSTED\'] == \'Yes\') {
+						// Test if character is in db
+						$sql = \'SELECT typeID, itemID, typeName FROM \' . $db_prefix . \'ELSMo_Types WHERE typeName = \\\'\' . mysql_real_escape_string($data) . \'\\\' AND typeID = 1377\';
+						
+						$result = $smcFunc[\'db_query\'](\'\',$sql);
+						while($row = $smcFunc[\'db_fetch_assoc\']($result)) {
+							// Found in db - Create EVELink
+							$evelink = \'<a href="javascript:CCPEVE.showInfo(1337,\' . $row[\'itemID\'] . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
+						}
+						
+						if ($evelink == \'\') {
+							// Character not in db - fetching from through API
+							
+							require_once "Pheal/Pheal.php";
+							spl_autoload_register("Pheal::classload");
+							$pheal = new Pheal();
+							$pheal->scope = \'eve\';
+							
+							try {
+								$result = $pheal->CharacterID(array("names" => $processed_data));
+								
+								if ($result->characters[0]->characterID > 0) {
+									// Character found
+									$smcFunc[\'db_query\'](\'\', \'INSERT INTO \' . $db_prefix . \'ELSMo_Types (typeID, itemID, typeName) VALUES (1377, \' . $result->characters[0]->characterID . \', \\\'\' . mysql_real_escape_string($data) . \'\\\')\');
+									
+									$output = \'<a href="javascript:CCPEVE.showInfo(1337,\' . $result->characters[0]->characterID . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
+								}
+								
+							} catch (PhealException $e) {
+								$output = $data;
+							}
+						} else {
+							$output = $evelink;
+						}
+					}
+					
+					$data = $output;
+				'),
+				'block_level' => true,
+			),array(
+				'tag' => 'evecorp',
+				'type' => 'unparsed_content',
+				'content' => '$1',
+				'validate' => create_function('&$tag, &$data, $disabled', '
+					global $smcFunc;
+					global $db_prefix;
+					
+					$processed_data = str_replace("&#039;", "\'", $data);
+					$output = \'<a href="http://evewho.com/corp/\' . urlencode($processed_data) . \'">\' . $data . \'</a><sup>&#x2261; who</sup>\';
+					$evelink = \'\';
+					
+					// Only if site is trusted ...
+					
+					if ($_SERVER[\'HTTP_EVE_TRUSTED\'] == \'Yes\') {
+						// Test if corporation is in db
+						$sql = \'SELECT typeID, itemID, typeName FROM \' . $db_prefix . \'ELSMo_Types WHERE typeName = \\\'\' . mysql_real_escape_string($data) . \'\\\' AND typeID = 2\';
+						
+						$result = $smcFunc[\'db_query\'](\'\',$sql);
+						while($row = $smcFunc[\'db_fetch_assoc\']($result)) {
+							// Found in db - Create EVELink
+							$evelink = \'<a href="javascript:CCPEVE.showInfo(2,\' . $row[\'itemID\'] . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
+						}
+						
+						if ($evelink == \'\') {
+							// Character not in db - fetching from through API
+							
+							require_once "Pheal/Pheal.php";
+							spl_autoload_register("Pheal::classload");
+							$pheal = new Pheal();
+							$pheal->scope = \'eve\';
+							
+							$cID = 0;
+							try {
+								$result = $pheal->CharacterID(array("names" => $processed_data));
+								
+								$cID = $result->characters[0]->characterID;
+								if ($cID > 0) {
+									// Something with that name exists, check for being a Corporation
+									
+									$pheal->scope = \'corp\';
+									$result = $pheal->CorporationSheet(array("corporationID" => $cID));
+									
+									// Save Corporation to database ...
+									$smcFunc[\'db_query\'](\'\', \'INSERT INTO \' . $db_prefix . \'ELSMo_Types (typeID, itemID, typeName) VALUES (2, \' . $result->corporationID . \', \\\'\' . mysql_real_escape_string($data) . \'\\\')\');
+									
+									$output = \'<a href="javascript:CCPEVE.showInfo(2,\' . $result->corporationID . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
+								}
+							
+							} catch (PhealException $e) {
+								$output = $data;
+							}
+						} else {
+							$output = $evelink;
+						}
+					}
+					
+					$data = $output;
+				'),
+				'block_level' => true,
+			),array(
+				'tag' => 'evesystem',
+				'type' => 'unparsed_content',
+				'content' => '$1',
+				'validate' => create_function('&$tag, &$data, $disabled', '
+					global $smcFunc;
+					global $db_prefix;
+					
+					$processed_data = str_replace("&#039;", "\'", $data);
+					$output = \'<a href="http://wiki.eveonline.com/en/wiki/\' . str_replace(" ", "_", $processed_data) . \'_(System)">\' . $data . \'</a><sup>&#x2261; wiki</sup>\';
+					$evelink = \'\';
+					
+					// Only if site is trusted ...
+					
+					if ($_SERVER[\'HTTP_EVE_TRUSTED\'] == \'Yes\') {
+						// Test if solar system is in db
+						$sql = \'SELECT typeID, itemID, typeName FROM \' . $db_prefix . \'ELSMo_Types WHERE typeName = \\\'\' . mysql_real_escape_string($data) . \'\\\' AND typeID = 5\';
+						
+						$result = $smcFunc[\'db_query\'](\'\',$sql);
+						while($row = $smcFunc[\'db_fetch_assoc\']($result)) {
+							// Found in db - Create EVELink
+							$evelink = \'<a href="javascript:CCPEVE.showInfo(5,\' . $row[\'itemID\'] . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
+						}
+						
+						if ($evelink == \'\') {
+							// Solar system not in db - fetching from through API
+							
+							require_once "Pheal/Pheal.php";
+							spl_autoload_register("Pheal::classload");
+							$pheal = new Pheal();
+							$pheal->scope = \'eve\';
+							
+							try {
+								$result = $pheal->CharacterID(array("names" => $processed_data));
+								
+								$result->characters[0]->characterID;
+								if ($result->characters[0]->characterID > 0) {
+									// Something with that name exists,
+									// idk if there is a way to check its type
+									
+									// Save station to database ...
+									$smcFunc[\'db_query\'](\'\', \'INSERT INTO \' . $db_prefix . \'ELSMo_Types (typeID, itemID, typeName) VALUES (5, \' . $result->characters[0]->characterID . \', \\\'\' . mysql_real_escape_string($data) . \'\\\')\');
+									
+									$output = \'<a href="javascript:CCPEVE.showInfo(5,\' . $result->characters[0]->characterID . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
+								}
+								
+							} catch (PhealException $e) {
+								$output = $data;
+							}
+						} else {
+							$output = $evelink;
+						}
+					}
+					
+					$data = $output;
+				'),
+				'block_level' => true,
+			),array(
+				'tag' => 'evestation',
+				'type' => 'unparsed_content',
+				'content' => '$1',
+				'validate' => create_function('&$tag, &$data, $disabled', '
+					global $smcFunc;
+					global $db_prefix;
+					
+					$processed_data = str_replace("&#039;", "\'", $data);
+					$output = \'<a href="http://wiki.eveonline.com/en/wiki/\' . str_replace(" ", "_", $processed_data) . \'">\' . $data . \'</a><sup>&#x2261; wiki</sup>\';
+					$evelink = \'\';
+					
+					// Only if site is trusted ...
+					
+					if ($_SERVER[\'HTTP_EVE_TRUSTED\'] == \'Yes\') {
+						// Test if station is in db
+						$sql = \'SELECT typeID, itemID, typeName FROM \' . $db_prefix . \'ELSMo_Types WHERE typeName = \\\'\' . mysql_real_escape_string($data) . \'\\\' AND typeID = 3867\';
+						
+						$result = $smcFunc[\'db_query\'](\'\',$sql);
+						while($row = $smcFunc[\'db_fetch_assoc\']($result)) {
+							// Found in db - Create EVELink
+							$evelink = \'<a href="javascript:CCPEVE.showInfo(3867,\' . $row[\'itemID\'] . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
+						}
+						
+						if ($evelink == \'\') {
+							// Station not in db - fetching from through API
+							
+							require_once "Pheal/Pheal.php";
+							spl_autoload_register("Pheal::classload");
+							$pheal = new Pheal();
+							$pheal->scope = \'eve\';
+							
+							try {
+								$result = $pheal->CharacterID(array("names" => $processed_data));
+								
+								if ($result->characters[0]->characterID > 0) {
+									// Something with that name exists,
+									// idk if there is a way to check its type
+									
+									// Save Station to database ...
+									$smcFunc[\'db_query\'](\'\', \'INSERT INTO \' . $db_prefix . \'ELSMo_Types (typeID, itemID, typeName) VALUES (3867, \' . $result->characters[0]->characterID . \', \\\'\' . mysql_real_escape_string($data) . \'\\\')\');
+									
+									$output = \'<a href="javascript:CCPEVE.showInfo(3867,\' . $result->characters[0]->characterID . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
+								}
+								
+							} catch (PhealException $e) {
+								$output = $data;
+							}
+						} else {
+							$output = $evelink;
+						}
+					}
+					
+					$data = $output;
+				'),
+				'block_level' => true,
+			),]]></add>
+        </operation>
+    </file>
+	<file name="$sourcedir/Subs-Editor.php">
+		 <operation>
+            <search whitespace="loose" position="before"><![CDATA[array(
+				'image' => 'hr',
+				'code' => 'hr',
+				'before' => '[hr]',
+				'description' => $txt['horizontal_rule']
+			),]]></search>
+            <add><![CDATA[array(
+				'image' => 'evechar',
+				'code' => 'evechar',
+				'before' => '[evechar]',
+				'after' => '[/evechar]',
+				'description' => $txt['elsmo_link_pilot']
+			),array(
+				'image' => 'evecorp',
+				'code' => 'evecorp',
+				'before' => '[evecorp]',
+				'after' => '[/evecorp]',
+				'description' => $txt['elsmo_link_corp']
+			),array(
+				'image' => 'evesystem',
+				'code' => 'evesystem',
+				'before' => '[evesystem]',
+				'after' => '[/evesystem]',
+				'description' => $txt['elsmo_link_system']
+			),array(
+				'image' => 'evestation',
+				'code' => 'evestation',
+				'before' => '[evestation]',
+				'after' => '[/evestation]',
+				'description' => $txt['elsmo_link_station']
+			),]]></add>
+        </operation>
+	</file>
+</modification>
