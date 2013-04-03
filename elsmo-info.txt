@@ -1,0 +1,5 @@
+EVE-Linker SMF Mod
+
+A mod that adds certain BBCodes to SMF in order to link Characters, Corporations, Solar Systems and Stations, either as a InfoPanel Link for the IGB or according Links (EVE-Who) in an OOGB.
+
+Pheal by Peter Petermann (https://github.com/ppetermann/pheal) is required to run this SMF Mod.
