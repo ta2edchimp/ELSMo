@@ -47,7 +47,7 @@
 						$result = $smcFunc[\'db_query\'](\'\',$sql);
 						while($row = $smcFunc[\'db_fetch_assoc\']($result)) {
 							// Found in db - Create EVELink
-							$evelink = \'<a href="javascript:CCPEVE.showInfo(1337,\' . $row[\'itemID\'] . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
+							$evelink = \'<a href="javascript:CCPEVE.showInfo(1377,\' . $row[\'itemID\'] . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
 						}
 						
 						if ($evelink == \'\') {
@@ -65,7 +65,7 @@
 									// Character found
 									$smcFunc[\'db_query\'](\'\', \'INSERT INTO \' . $db_prefix . \'ELSMo_Types (typeID, itemID, typeName) VALUES (1377, \' . $result->characters[0]->characterID . \', \\\'\' . mysql_real_escape_string($data) . \'\\\')\');
 									
-									$output = \'<a href="javascript:CCPEVE.showInfo(1337,\' . $result->characters[0]->characterID . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
+									$output = \'<a href="javascript:CCPEVE.showInfo(1377,\' . $result->characters[0]->characterID . \')">\' . $data . \'</a><sup>&#x2261;</sup>\';
 								}
 								
 							} catch (PhealException $e) {
